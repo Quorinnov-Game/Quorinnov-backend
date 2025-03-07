@@ -1,0 +1,2 @@
+1, To download Libaries in requirements.txt, in Terminal:
+pip install -r requirements.txt
