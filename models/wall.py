@@ -3,7 +3,8 @@ from database import Base
 
 class Wall(Base):
     __tablename__ = "walls"
+
     id = Column(Integer, primary_key=True, index=True)
-    x = Column(Integer)
-    y = Column(Integer)
-    direction = Column(String)  # "H" or "V"
+    x = Column(Integer, nullable=False)  # 0 đến 8
+    y = Column(Integer, nullable=False)
+    direction = Column(String, nullable=False)  # "horizontal" hoặc "vertical"

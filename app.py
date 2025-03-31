@@ -1,10 +1,11 @@
-from fastapi import FastAPI
-from controllers import game_controller
-import models.board, models.player, models.wall
+from flask import Flask
+from controllers.game_controller import router as game_routes
 from database import Base, engine
 
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI()
+app = Flask(__name__)
+app.register_blueprint(game_routes, url_prefix="/api")
 
-app.include_router(game_controller.router)
+if __name__ == "__main__":
+    app.run(debug=True)
