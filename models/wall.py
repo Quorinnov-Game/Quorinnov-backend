@@ -1,19 +1,9 @@
-class Wall:
-    """
-    represent 1 (Wall) on board, with  (horizontal/vertical).
-    """
-    def __init__(self, row, col, orientation):
-        """
-        row, col: position of wall
-        orientation: 'H' (horizontal) hoặc 'V' (vertical)
-        """
-        self.row = row
-        self.col = col
-        self.orientation = orientation
+from sqlalchemy import Column, Integer, String
+from database import Base
 
-    def to_dict(self):
-        return {
-            "row": self.row,
-            "col": self.col,
-            "orientation": self.orientation
-        }
+class Wall(Base):
+    __tablename__ = "walls"
+    id = Column(Integer, primary_key=True, index=True)
+    x = Column(Integer)
+    y = Column(Integer)
+    direction = Column(String)  # "H" or "V"
