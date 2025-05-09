@@ -67,19 +67,33 @@ class GameService:
         return new_col + new_row
 
     def place_wall(self, player_id: int, x: int, y: int, orientation: str) -> bool:
+        print(f"[place_wall] Request from player {player_id} to place at ({x}, {y}) - {orientation}")
+    
         player = self.get_player(player_id)
-        if not player or player.walls_left <= 0:
+        if not player:
+            print("[place_wall] Failed: player not found")
             return False
-
-        new_wall = Wall(x=x, y=y, direction=orientation)
+        if player.walls_left <= 0:
+            print("[place_wall] Failed: no walls left")
+            return False
+        
         board = self.db.query(Board).first()
+        if not board:
+            print("[place_wall] Failed: no board")
+            return False
+        
+        new_wall = Wall(x=x, y=y, direction=orientation)
 
-        if is_valid_wall_placement(new_wall, board):
-            self.db.add(new_wall)
-            player.walls_left -= 1
-            self.db.commit()
-            return True
-        return False
+        if not is_valid_wall_placement(new_wall, board):
+            print("[place_wall] Failed: invalid placement")
+            return False
+        
+        print("[place_wall] Success: wall placed")
+        self.db.add(new_wall)
+        player.walls_left -= 1
+        self.db.commit()
+        return True
+
 
     def check_winner(self) -> str:
         players = self.db.query(Player).all()
