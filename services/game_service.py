@@ -9,6 +9,28 @@ class GameService:
     def __init__(self, db: Session):
         self.db = db
 
+    def create_game(self, player1: Player, player2: Player, board: Board):
+        board = Board(width=board["width"], height=board["height"])
+        print(f"[create_game] Board size: {board.width}x{board.height}")
+        self.db.add(board)
+
+        player1 = Player(
+            color=player1["color"],
+            position=player1["position"],
+            walls_left=player1["walls_left"]
+        )
+        player2 = Player(
+            color=player2["color"],
+            position=player2["position"],
+            walls_left=player2["walls_left"]
+        )
+
+        print(f"[create_game] Creating game with players {player1.name} and {player2.name}")
+        self.db.add_all([player1, player2])
+
+        self.db.commit()
+        print("[create_game] Game created successfully")
+
     def get_player(self, player_id: int) -> Player:
         return self.db.query(Player).filter(Player.id == player_id).first()
 
