@@ -37,3 +37,12 @@ def reset():
     service.reset_game()
     db.close()
     return jsonify({"reset": True})
+
+@router.route("/create_game", methods=["POST"])
+def create_game():
+    db = SessionLocal()
+    data = request.json
+    service = GameService(db)
+    service.create_game(data["player1"], data["player2"], data["board"])
+    db.close()
+    return jsonify({"game_created": True})
