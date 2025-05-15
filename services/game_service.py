@@ -79,7 +79,7 @@ class GameService:
         board_logic.set_players({p.id: p for p in players})
         board_logic.walls = walls
 
-        new_wall = Wall(x=x, y=y, direction=orientation, playerId=player_id)
+        new_wall = Wall(x=x, y=y, orientation=orientation, playerId=player_id)
 
         if not board_logic.add_wall(new_wall):
             print("[place_wall] Failed: invalid placement")
