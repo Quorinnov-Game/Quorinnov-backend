@@ -17,12 +17,12 @@ class GameService:
         player1_obj = Player(
             color=player1["color"],
             position=player1["position"],
-            wallsRemaining=player1["wallsRemaining"]
+            walls_left=player1["walls_left"]
         )
         player2_obj = Player(
             color=player2["color"],
             position=player2["position"],
-            wallsRemaining=player2["wallsRemaining"]
+            walls_left=player2["walls_left"]
         )
 
         print(f"[create_game] Creating game with players {player1_obj.name} and {player2_obj.name}")
@@ -63,7 +63,7 @@ class GameService:
         if not player:
             print("[place_wall] Failed: player not found")
             return False
-        if player.wallsRemaining <= 0:
+        if player.walls_left <= 0:
             print("[place_wall] Failed: no walls left")
             return False
 
@@ -87,7 +87,7 @@ class GameService:
 
         print("[place_wall] Success: wall placed")
         self.db.add(new_wall)
-        player.wallsRemaining -= 1
+        player.walls_left -= 1
         self.db.commit()
         return True
 

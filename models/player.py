@@ -12,7 +12,7 @@ class Player(Base):
     color = Column(String, nullable=False)  # e.g., "red" or "blue"
     name = Column(String, nullable=True)
     position = Column(JSON, nullable=False)  # {"x": 4, "y": 3}
-    wallsRemaining = Column(Integer, default=10)  # rename từ walls_left
+    walls_left = Column(Integer, default=10)  # rename từ walls_left
     isWinner = Column(Boolean, default=False)
     isPlayer = Column(Boolean, default=True)
     direction = Column(SQLEnum(Direction, name="direction_enum", create_type=False), nullable=True)
@@ -24,7 +24,7 @@ def to_dict(self):
             "name": self.name,
             "color": self.color,
             "position": self.position,
-            "wallsRemaining": self.wallsRemaining,
+            "walls_left": self.walls_left,
             "isWinner": self.isWinner,
             "isPlayer": self.isPlayer,
             "direction": self.direction.value if self.direction else None
