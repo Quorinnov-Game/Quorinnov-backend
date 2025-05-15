@@ -3,6 +3,7 @@ from models.board import Board
 from models.player import Player
 from models.wall import Wall
 from models.enums import Direction
+from .board_logic import GameBoard
 
 class GameService:
     def __init__(self, db: Session):
@@ -38,12 +39,19 @@ class GameService:
         if not player:
             return False
 
-        board = self.db.query(Board).first()
-        if not board:
+        board_data = self.db.query(Board).first()
+        if not board_data:
             return False
 
-        if board.is_valid_move(player, direction):
-            player.position = board.calculate_new_position(player.position, direction)
+        players = self.db.query(Player).all()
+        walls = self.db.query(Wall).all()
+
+        board_logic = GameBoard(size=board_data.width)
+        board_logic.set_players({p.id: p for p in players})
+        board_logic.walls = walls
+
+        if board_logic.is_valid_move(player, direction):
+            player.position = board_logic.calculate_new_position(player.position, direction)
             self.db.commit()
             return True
         return False
@@ -59,15 +67,21 @@ class GameService:
             print("[place_wall] Failed: no walls left")
             return False
 
-        board = self.db.query(Board).first()
-        if not board:
+        board_data = self.db.query(Board).first()
+        if not board_data:
             print("[place_wall] Failed: no board")
             return False
 
         players = self.db.query(Player).all()
+        walls = self.db.query(Wall).all()
+
+        board_logic = GameBoard(size=board_data.width)
+        board_logic.set_players({p.id: p for p in players})
+        board_logic.walls = walls
+
         new_wall = Wall(x=x, y=y, direction=orientation, playerId=player_id)
 
-        if not board.place_wall(new_wall, players):
+        if not board_logic.add_wall(new_wall):
             print("[place_wall] Failed: invalid placement")
             return False
 
@@ -79,9 +93,18 @@ class GameService:
 
     def check_winner(self) -> str:
         players = self.db.query(Player).all()
-        board = self.db.query(Board).first()
+        board_data = self.db.query(Board).first()
+        walls = self.db.query(Wall).all()
+
+        board_logic = GameBoard(size=board_data.width)
+        board_logic.set_players({p.id: p for p in players})
+        board_logic.walls = walls
+
         for player in players:
-            if board.check_win_condition(player):
+            if board_logic.has_path(player) and (
+                    (player.direction == Direction.UP and player.position["x"] == 0) or
+                    (player.direction == Direction.DOWN and player.position["x"] == board_data.height - 1)
+            ):
                 return player.name
         return ""
 
