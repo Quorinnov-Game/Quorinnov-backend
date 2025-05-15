@@ -1,2 +1,7 @@
 1, To download Libaries in requirements.txt, in Terminal:
 pip install -r requirements.txt
+2. to run backend in simulated environment
+python3 -m venv venv
+source venv/bin/activate
+3.if you want to change or add some dependency, make sure it works and
+pip freeze > requirements.txt
