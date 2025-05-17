@@ -56,7 +56,7 @@ class GameService:
             return True
         return False
 
-    def place_wall(self, player_id: int, x: int, y: int, orientation: str) -> bool:
+    def place_wall(self, player_id: int, x: int, y: int, orientation: str,is_valid: bool) -> bool:
         print(f"[place_wall] Request from player {player_id} to place at ({x}, {y}) - {orientation}")
 
         player = self.get_player(player_id)
@@ -85,10 +85,11 @@ class GameService:
             print("[place_wall] Failed: invalid placement")
             return False
 
-        print("[place_wall] Success: wall placed")
-        self.db.add(new_wall)
-        player.walls_left -= 1
-        self.db.commit()
+        if is_valid:
+            print("[place_wall] Success: wall placed")
+            self.db.add(new_wall)
+            player.walls_left -= 1
+            self.db.commit()
         return True
 
     def check_winner(self) -> str:

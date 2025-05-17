@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, Enum as SQLEnum
+from sqlalchemy import Column, Integer, String,Boolean, ForeignKey, Enum as SQLEnum, column
 from database import Base
 from .enums import Orientation  # import Orientation từ file định nghĩa enum
 
@@ -11,13 +11,17 @@ class Wall(Base):
     x = Column(Integer, nullable=False)
     y = Column(Integer, nullable=False)
     orientation = Column(SQLEnum(Orientation, name="orientation_enum"), nullable=False)
+    isValid = Column(Boolean, nullable=False, default=True)  # ✅ thêm dòng này
 
-    def to_dict(self):
+
+
+def to_dict(self):
         return {
             "playerId": self.playerId,
             "position": {
                 "x": self.x,
                 "y": self.y
             },
-            "orientation": self.orientation.value
+            "orientation": self.orientation.value,
+            "isValid": self.isValid
         }

@@ -18,7 +18,7 @@ def place_wall():
     db = SessionLocal()
     data = request.json
     service = GameService(db)
-    success = service.place_wall(data["player_id"], data["x"], data["y"], data["orientation"])
+    success = service.place_wall(data["player_id"], data["x"], data["y"], data["orientation"],data["is_valid"])
     db.close()
     return jsonify({"success": success})
 
