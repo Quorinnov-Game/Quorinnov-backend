@@ -11,7 +11,7 @@ class Wall(Base):
     x = Column(Integer, nullable=False)
     y = Column(Integer, nullable=False)
     orientation = Column(SQLEnum(Orientation, name="orientation_enum"), nullable=False)
-    isValid = Column(Boolean, nullable=False, default=True)  # ✅ thêm dòng này
+    isValid = Column(Boolean, nullable=False, default=False)
 
 
 
