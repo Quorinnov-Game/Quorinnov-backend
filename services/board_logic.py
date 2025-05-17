@@ -132,7 +132,38 @@ class GameBoard:
             return False
         if self.is_blocked(x, y, nx, ny):
             return False
+        # Kiểm tra nếu ô tiếp theo có người chơi khác
+        for pid, other in self.players.items():
+            if other.id != player.id and other.position["x"] == nx and other.position["y"] == ny:
+                # Người chơi khác đang ở phía trước
+
+                # Tọa độ sau người chơi kia
+                jump_x, jump_y = nx + dx, ny + dy
+                if (0 <= jump_x < self.size and 0 <= jump_y < self.size and
+                    not self.is_blocked(nx, ny, jump_x, jump_y)):
+                    # Có thể nhảy qua
+                    return True
+                else:
+                    # Không thể nhảy qua, kiểm tra sang trái/phải
+                    if direction in [Direction.UP, Direction.DOWN]:
+                        # thử sang trái và phải
+                        for side_dy in [-1, 1]:
+                            side_y = ny + side_dy
+                            if (0 <= side_y < self.size and
+                                not self.is_blocked(nx, ny, nx, side_y)):
+                                return True
+                    else:
+                        # thử lên hoặc xuống
+                        for side_dx in [-1, 1]:
+                            side_x = nx + side_dx
+                            if (0 <= side_x < self.size and
+                                not self.is_blocked(nx, ny, side_x, ny)):
+                                return True
+                    return False
+
+        # Không có ai phía trước → bình thường
         return True
+
     def calculate_new_position(self, position: dict, direction: Direction) -> dict:
         dx, dy = {
             Direction.UP: (-1, 0),

@@ -108,6 +108,26 @@ class GameService:
                 return player.name
         return ""
 
+
+    def is_valid_wall(self, player_id: int, x: int, y: int, orientation: str) -> bool:
+        player = self.get_player(player_id)
+        if not player:
+            return False
+
+        board_data = self.db.query(Board).first()
+        if not board_data:
+            return False
+
+        players = self.db.query(Player).all()
+        walls = self.db.query(Wall).all()
+
+        board_logic = GameBoard(size=board_data.width)
+        board_logic.set_players({p.id: p for p in players})
+        board_logic.walls = walls
+
+        test_wall = Wall(x=x, y=y, orientation=orientation, playerId=player_id)
+        return board_logic._is_valid_wall(test_wall)
+
     def reset_game(self):
         self.db.query(Wall).delete()
         self.db.query(Player).delete()

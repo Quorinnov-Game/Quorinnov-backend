@@ -46,3 +46,12 @@ def create_game():
     service.create_game(data["player1"], data["player2"], data["board"])
     db.close()
     return jsonify({"game_created": True})
+
+@router.route("/is_valid_wall", methods=["POST"])
+def is_valid_wall():
+    db = SessionLocal()
+    data = request.json
+    service = GameService(db)
+    valid = service.is_valid_wall(data["player_id"], data["x"], data["y"], data["orientation"])
+    db.close()
+    return jsonify({"is_valid": valid})
