@@ -40,10 +40,10 @@ class GameBoard:
         orientation = wall.orientation
 
         # Kiểm tra giới hạn
-        if orientation == Orientation.HORIZONTAL:
+        if orientation == Orientation.VERTICAL:
             if not (0 <= x < self.size - 1 and 0 < y < self.size):
                 return False
-        elif orientation == Orientation.VERTICAL:
+        elif orientation == Orientation.HORIZONTAL:
             if not (0 < x < self.size and 0 <= y < self.size - 1):
                 return False
 
@@ -56,12 +56,12 @@ class GameBoard:
         for w in self.walls:
             if (
                     orientation == Orientation.HORIZONTAL and w.orientation == Orientation.VERTICAL and
-                    x == w.x - 1 and y == w.y + 1
+                    x == w.x + 1 and y == w.y - 1
             ):
                 return False
             elif (
                     orientation == Orientation.VERTICAL and w.orientation == Orientation.HORIZONTAL and
-                    x == w.x + 1 and y == w.y - 1
+                    x == w.x - 1 and y == w.y + 1
             ):
                 return False
 
