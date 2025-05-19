@@ -39,31 +39,17 @@ class GameBoard:
         x, y = wall.x, wall.y
         orientation = wall.orientation
 
-        # Kiểm tra giới hạn
-        if orientation == Orientation.VERTICAL:
-            if not (0 <= x < self.size - 1 and 0 < y < self.size):
-                return False
-        elif orientation == Orientation.HORIZONTAL:
-            if not (0 < x < self.size and 0 <= y < self.size - 1):
-                return False
+        # Kiểm tra giới hạn bàn cờ tường có thể được đặt (0 -> 7)
+        if not (0 <= x <= self.size - 2 and 0 <= y <= self.size - 2):
+            return False
 
         # Kiểm tra trùng vị trí
         for w in self.walls:
-            if w.x == x and w.y == y and w.orientation == orientation:
-                return False
+            return w.orientation == orientation and abs(w.x - x) <= 1 and abs(w.y - y) <= 1
 
         # Kiểm tra giao nhau (như frontend đã làm)
         for w in self.walls:
-            if (
-                    orientation == Orientation.HORIZONTAL and w.orientation == Orientation.VERTICAL and
-                    x == w.x + 1 and y == w.y - 1
-            ):
-                return False
-            elif (
-                    orientation == Orientation.VERTICAL and w.orientation == Orientation.HORIZONTAL and
-                    x == w.x - 1 and y == w.y + 1
-            ):
-                return False
+            return w.x == x and w.y == y and w.orientation != orientation
 
         # (Optional) kiểm tra chắn đường
         self.walls.append(wall)
