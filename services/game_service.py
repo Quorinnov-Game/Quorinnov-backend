@@ -29,17 +29,17 @@ class GameService:
         # Create empty state
         state_obj = State(playerA=[], playerB=[])
         self.db.add(state_obj)
-        self.db.commit()
+        self.db.flush() # Flush để lấy ID của state trước khi commit
 
         # Create new game (board)
         board_obj = Board(state_id=state_obj.id, width=9, height=9)
         self.db.add(board_obj)
-        self.db.commit()
+        self.db.flush()
 
         # Create players with fixed ID
         player1_obj = Player(
             id=1,
-            board_id=board_obj.id,
+            # board_id=board_obj.id,
             color=player1["color"],
             position=player1["position"],
             direction="up",
@@ -47,7 +47,7 @@ class GameService:
         )
         player2_obj = Player(
             id=2,
-            board_id=board_obj.id,
+            # board_id=board_obj.id,
             color=player2["color"],
             position=player2["position"],
             direction="down",
@@ -55,6 +55,11 @@ class GameService:
         )
         self.db.add_all([player1_obj, player2_obj])
         self.db.commit()
+
+        # Refresh the board object để đảm bảo có đầy đủ thông tin
+        self.db.refresh(board_obj)
+
+        return board_obj
 
     def get_player(self, player_id: int) -> Player:
         return self.db.query(Player).filter(Player.id == player_id).first()
@@ -116,7 +121,7 @@ class GameService:
         board_logic.set_players({p.id: p for p in players})
         board_logic.walls = walls
 
-        new_wall = Wall(x=x, y=y, orientation=orientation, playerId=player_id, is_valid=is_valid)
+        new_wall = Wall(x=x, y=y, orientation=orientation, playerId=player_id, isValid=is_valid)
 
         if not board_logic._is_valid_wall(new_wall):
             print("[place_wall] Failed: wall not valid by logic")
@@ -127,12 +132,16 @@ class GameService:
             self.db.add(new_wall)
             player.walls_left -= 1
 
-            self.log_action_to_state(state, player_id, {
-                "type": "wall",
-                "x": x,
-                "y": y,
-                "orientation": orientation
-            })
+            # self.log_action_to_state(
+            #       state,
+            #       player_id, {
+                #     "type": "wall",
+                #     "x": x,
+                #     "y": y,
+                #     "orientation": orientation
+                #   },
+                #   Chỗ này thiếu argument action, trong hàm log_action_to_state m định nghĩa 4 arguments
+            #)
 
             self.db.commit()
         else:
@@ -157,11 +166,11 @@ class GameService:
         test_wall = Wall(x=x, y=y, orientation=orientation, playerId=player_id)
         return board_logic._is_valid_wall(test_wall)
 
-    def log_action_to_state(self, state: State, player_id: int, action: dict):
-        if player_id == 1:
-            state.playerA.append(action)
-        elif player_id == 2:
-            state.playerB.append(action)
+    # def log_action_to_state(self, state: State, player_id: int, action: dict):
+    #     if player_id == 1:
+    #         state.playerA.append(action)
+    #     elif player_id == 2:
+    #         state.playerB.append(action)
 
     def reset_game(self):
         self.db.query(Wall).delete()
