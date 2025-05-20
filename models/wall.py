@@ -7,21 +7,21 @@ class Wall(Base):
     __tablename__ = "walls"
 
     id = Column(Integer, primary_key=True, index=True)
-    playerId = Column(Integer, ForeignKey("players.id"))  # liên kết player
+    player_id = Column(Integer, ForeignKey("players.id"))  # liên kết player
     x = Column(Integer, nullable=False)
     y = Column(Integer, nullable=False)
     orientation = Column(SQLEnum(Orientation, name="orientation_enum"), nullable=False)
-    isValid = Column(Boolean, nullable=False, default=False)
+    is_valid = Column(Boolean, nullable=False, default=False)
 
 
 
 def to_dict(self):
         return {
-            "playerId": self.playerId,
+            "player_id": self.player_id,
             "position": {
                 "x": self.x,
                 "y": self.y
             },
             "orientation": self.orientation.value,
-            "isValid": self.isValid
+            "is_valid": self.is_valid
         }

@@ -6,7 +6,7 @@ from database import Base, engine
 Base.metadata.create_all(bind=engine)
 
 app = Flask(__name__)
-CORS(app, origins=["http://localhost:5173"])
+CORS(app, resources={r"/api/*": {"origins": "http://localhost:5173"}})
 app.register_blueprint(game_routes, url_prefix="/api")
 
 if __name__ == "__main__":

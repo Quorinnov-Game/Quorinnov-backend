@@ -1,11 +1,3 @@
-from sqlalchemy.orm import Session
-from models.board import Board          # Board đóng vai trò là Game
-from models.player import Player
-from models.wall import Wall
-from models.enums import Direction
-from models.state import State
-from .board_logic import GameBoard
-
 
 from sqlalchemy.orm import Session
 from models.board import Board
@@ -14,6 +6,7 @@ from models.wall import Wall
 from models.enums import Direction
 from models.state import State
 from .board_logic import GameBoard
+import copy
 
 
 class GameService:
@@ -93,7 +86,7 @@ class GameService:
         player.position = board_logic.calculate_new_position(player.position, direction)
 
         # Log the move to state
-        self.log_action_to_state(state, player_id, {"type": "player", "direction": direction})
+        self.log_action_to_state(player_id, {"type": "player", "direction": direction})
         self.db.commit()
         return True
 
@@ -121,7 +114,7 @@ class GameService:
         board_logic.set_players({p.id: p for p in players})
         board_logic.walls = walls
 
-        new_wall = Wall(x=x, y=y, orientation=orientation, playerId=player_id, isValid=is_valid)
+        new_wall = Wall(x=x, y=y, orientation=orientation, player_id=player_id, is_valid=is_valid)
 
         if not board_logic._is_valid_wall(new_wall):
             print("[place_wall] Failed: wall not valid by logic")
@@ -132,16 +125,12 @@ class GameService:
             self.db.add(new_wall)
             player.walls_left -= 1
 
-            # self.log_action_to_state(
-            #       state,
-            #       player_id, {
-                #     "type": "wall",
-                #     "x": x,
-                #     "y": y,
-                #     "orientation": orientation
-                #   },
-                #   Chỗ này thiếu argument action, trong hàm log_action_to_state m định nghĩa 4 arguments
-            #)
+            self.log_action_to_state(player_id, {
+                "type": "wall",
+                "x": x,
+                "y": y,
+                "orientation": orientation
+            })
 
             self.db.commit()
         else:
@@ -163,14 +152,8 @@ class GameService:
         board_logic.set_players({p.id: p for p in players})
         board_logic.walls = walls
 
-        test_wall = Wall(x=x, y=y, orientation=orientation, playerId=player_id)
+        test_wall = Wall(x=x, y=y, orientation=orientation, player_id=player_id)
         return board_logic._is_valid_wall(test_wall)
-
-    # def log_action_to_state(self, state: State, player_id: int, action: dict):
-    #     if player_id == 1:
-    #         state.playerA.append(action)
-    #     elif player_id == 2:
-    #         state.playerB.append(action)
 
     def reset_game(self):
         self.db.query(Wall).delete()
@@ -219,9 +202,13 @@ class GameService:
             return
 
         if player_id == 1:
-            state.playerA.append(action)
+            new_log = copy.deepcopy(state.playerA)
+            new_log.append(action)
+            state.playerA = new_log
         elif player_id == 2:
-            state.playerB.append(action)
+            new_log = copy.deepcopy(state.playerB)
+            new_log.append(action)
+            state.playerB = new_log
 
         self.db.commit()
 
@@ -256,7 +243,7 @@ class GameService:
             if player.walls_left <= 0:
                 return False
 
-            new_wall = Wall(x=x, y=y, orientation=orientation, playerId=player_id)
+            new_wall = Wall(x=x, y=y, orientation=orientation, player_id=player_id)
             if board_logic.add_wall(new_wall):
                 self.db.add(new_wall)
                 player.walls_left -= 1

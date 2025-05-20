@@ -80,16 +80,20 @@ class GameBoard:
                 return True
             visited.add((x, y))
 
-            for dx, dy in [(-1,0), (1,0), (0,-1), (0,1)]:
+            for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
                 nx, ny = x + dx, y + dy
                 if not (0 <= nx < self.size and 0 <= ny < self.size):
                     continue
                 if (nx, ny) in visited:
                     continue
-                if self.is_blocked(x, y, nx, ny):  # kiểm tra có bị chắn bởi tường không
+
+                # ⚠ Quan trọng: Gọi đúng chiều truyền vào để phù hợp với `is_blocked`
+                if self.is_blocked(min(x, nx), min(y, ny), max(x, nx), max(y, ny)):
                     continue
+
                 queue.append((nx, ny))
-        return False  # không tới được hàng đích
+
+        return False
     def is_blocked(self, x1, y1, x2, y2):
         for wall in self.walls:
             wx, wy = wall.x, wall.y

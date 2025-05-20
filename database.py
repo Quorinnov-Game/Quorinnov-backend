@@ -5,7 +5,7 @@ import os
 
 load_dotenv()  # <== DÒNG NÀY GIÚP ĐỌC FILE .env
 
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:YOUR_PASSWORD@localhost:5432/quorinov")
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:abc123@localhost:5432/quorinov")
 
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
