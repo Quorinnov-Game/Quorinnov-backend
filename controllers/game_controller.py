@@ -9,7 +9,7 @@ def move():
     db = SessionLocal()
     data = request.json
     service = GameService(db)
-    success = service.move_player(data["player_id"], data["direction"])
+    success = service.move_player(data["player_id"], data["x"], data["y"])
     db.close()
     return jsonify({"success": success})
 

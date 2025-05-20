@@ -65,7 +65,7 @@ class GameService:
         walls = self.db.query(Wall).all()
         return board, state, walls
 
-    def move_player(self, player_id: int, direction: str) -> bool:
+    def move_player_logic_backup(self, player_id: int, direction: str) -> bool:
         player = self.get_player(player_id)
         if not player:
             return False
@@ -89,6 +89,29 @@ class GameService:
         self.log_action_to_state(player_id, {"type": "player", "direction": direction})
         self.db.commit()
         return True
+    def move_player(self, player_id: int, x: int, y: int) -> bool:
+        player = self.get_player(player_id)
+        if not player:
+            return False
+
+        board = self.db.query(Board).first()
+        if not board:
+            return False
+
+        state = self.db.query(State).filter(State.id == board.state_id).first()
+        if not state:
+            return False
+
+        # no init position player
+        # only write log in state
+        self.log_action_to_state(player_id, {
+            "type": "player",
+            "position": {"x": x, "y": y}
+        })
+
+        self.db.commit()
+        return True
+
 
     def place_wall(self, player_id: int, x: int, y: int, orientation: str, is_valid: bool) -> bool:
         print(f"[place_wall] Request from player {player_id} to place at ({x}, {y}) - {orientation}, confirmed: {is_valid}")
