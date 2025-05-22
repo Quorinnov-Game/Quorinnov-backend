@@ -6,6 +6,7 @@ from models.wall import Wall
 from models.enums import Direction
 from models.state import State
 from .board_logic import GameBoard
+from models.turns import Turn
 import copy
 
 
@@ -17,6 +18,7 @@ class GameService:
         self.db.query(Wall).delete()
         self.db.query(Player).delete()
         self.db.query(Board).delete()
+        self.db.query(Turn).delete()
         self.db.commit()
 
         # Create empty state
@@ -108,6 +110,12 @@ class GameService:
             "type": "player",
             "position": {"x": x, "y": y}
         })
+        # Log to Turn table
+        self.update_turn(player_id, {
+            "type": "player",
+            "position": {"x": x, "y": y}
+        })
+
 
         self.db.commit()
         return True
@@ -155,6 +163,14 @@ class GameService:
                 "orientation": orientation
             })
 
+            self.update_turn(player_id, {
+                "type": "wall",
+                "x": x,
+                "y": y,
+                "orientation": orientation
+            })
+
+
             self.db.commit()
         else:
             print("[place_wall] Wall not confirmed, skipping DB write and log")
@@ -182,6 +198,7 @@ class GameService:
         self.db.query(Wall).delete()
         self.db.query(Player).delete()
         self.db.query(Board).delete()
+        self.db.query(Turn).delete()
         self.db.commit()
 
 
@@ -204,12 +221,7 @@ class GameService:
                     return player.name
         return ""
 
-    def reset_game(self):
-        self.db.query(Wall).delete()
-        self.db.query(Player).delete()
-        self.db.query(Board).delete()
-        self.db.query(State).delete()
-        self.db.commit()
+
 
     def log_action_to_state(self, player_id: int, action: dict):
         player = self.get_player(player_id)
@@ -281,4 +293,40 @@ class GameService:
                 return True
 
         return False
+    def update_turn(self, player_id: int, action: dict):
+        last_turn = self.db.query(Turn).order_by(Turn.id.desc()).first()
 
+        # if there are no turn , start from turn 1
+        if not last_turn:
+            current_turn = Turn(id=1)
+            if player_id == 1:
+                current_turn.player1_action = str(action)
+                current_turn.player2_action = None
+            else:
+                current_turn.player2_action = str(action)
+                current_turn.player1_action = None
+            self.db.add(current_turn)
+            self.db.commit()
+            return
+
+        # if the move before are complete , add new turn
+        if last_turn.player1_action and last_turn.player2_action:
+            new_turn_id = last_turn.id + 1
+            current_turn = Turn(id=new_turn_id)
+            if player_id == 1:
+                current_turn.player1_action = str(action)
+                current_turn.player2_action = last_turn.player2_action  # giữ nguyên B
+            else:
+                current_turn.player2_action = str(action)
+                current_turn.player1_action = last_turn.player1_action  # giữ nguyên A
+            self.db.add(current_turn)
+            self.db.commit()
+            return
+
+        # if the last move ,1 player move → update another
+        if player_id == 1 and not last_turn.player1_action:
+            last_turn.player1_action = str(action)
+        elif player_id == 2 and not last_turn.player2_action:
+            last_turn.player2_action = str(action)
+
+        self.db.commit()
