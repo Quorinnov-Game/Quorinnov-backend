@@ -68,3 +68,15 @@ def perform_action():
     success = service.perform_action(data["player_id"], data["action"])
     db.close()
     return jsonify({"success": success})
+
+@router.route("/turns/<int:turn_number>", methods=["GET"])
+def get_turns(turn_number):
+    db = SessionLocal()
+    service = GameService(db)
+    result = service.get_turns(turn_number)
+    db.close()
+
+    if result is None:
+        return jsonify({"error": "Turn number exceeds existing turns"}), 400
+    return jsonify(result)
+

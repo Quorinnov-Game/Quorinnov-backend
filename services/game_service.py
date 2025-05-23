@@ -111,7 +111,7 @@ class GameService:
             "position": {"x": x, "y": y}
         })
         # Log to Turn table
-        self.update_turn(player_id, {
+        self.update_turn({
             "type": "player",
             "position": {"x": x, "y": y}
         })
@@ -163,7 +163,7 @@ class GameService:
                 "orientation": orientation
             })
 
-            self.update_turn(player_id, {
+            self.update_turn({
                 "type": "wall",
                 "x": x,
                 "y": y,
@@ -293,40 +293,23 @@ class GameService:
                 return True
 
         return False
-    def update_turn(self, player_id: int, action: dict):
-        last_turn = self.db.query(Turn).order_by(Turn.id.desc()).first()
-
-        # if there are no turn , start from turn 1
-        if not last_turn:
-            current_turn = Turn(id=1)
-            if player_id == 1:
-                current_turn.player1_action = str(action)
-                current_turn.player2_action = None
-            else:
-                current_turn.player2_action = str(action)
-                current_turn.player1_action = None
-            self.db.add(current_turn)
-            self.db.commit()
-            return
-
-        # if the move before are complete , add new turn
-        if last_turn.player1_action and last_turn.player2_action:
-            new_turn_id = last_turn.id + 1
-            current_turn = Turn(id=new_turn_id)
-            if player_id == 1:
-                current_turn.player1_action = str(action)
-                current_turn.player2_action = last_turn.player2_action  # giữ nguyên B
-            else:
-                current_turn.player2_action = str(action)
-                current_turn.player1_action = last_turn.player1_action  # giữ nguyên A
-            self.db.add(current_turn)
-            self.db.commit()
-            return
-
-        # if the last move ,1 player move → update another
-        if player_id == 1 and not last_turn.player1_action:
-            last_turn.player1_action = str(action)
-        elif player_id == 2 and not last_turn.player2_action:
-            last_turn.player2_action = str(action)
-
+    def update_turn(self, action: dict):
+        """
+        Save each move as a Turn. Turn 1, 3, 5... = player 1; Turn 2, 4, 6... = player 2.
+        """
+        turn_count = self.db.query(Turn).count()
+        current_turn = Turn(
+            id=turn_count + 1,
+            move=action
+        )
+        self.db.add(current_turn)
         self.db.commit()
+
+    def get_turns(self, turn_number: int):
+        max_turn = self.db.query(Turn).count()
+        if turn_number > max_turn:
+            return None
+
+        turns = self.db.query(Turn).filter(Turn.id <= turn_number).order_by(Turn.id).all()
+        return [{"turn": t.id, "move": t.move} for t in turns]
+
