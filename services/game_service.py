@@ -8,6 +8,7 @@ from models.state import State
 from .board_logic import GameBoard
 from models.turns import Turn
 import copy
+from services.ai_service import RandomAI, BasicAI, AdvancedAI
 
 
 class GameService:
@@ -91,35 +92,30 @@ class GameService:
         self.log_action_to_state(player_id, {"type": "player", "direction": direction})
         self.db.commit()
         return True
+    
     def move_player(self, player_id: int, x: int, y: int) -> bool:
         player = self.get_player(player_id)
         if not player:
+            print(f"[move_player] Player {player_id} not found")
             return False
 
-        board = self.db.query(Board).first()
-        if not board:
-            return False
-
-        state = self.db.query(State).filter(State.id == board.state_id).first()
-        if not state:
-            return False
-
-        # no init position player
-        # only write log in state
+        # Met à jour la position du joueur
+        player.position = {"x": x, "y": y}
+        
+        # Log dans l'état et dans les tours
         self.log_action_to_state(player_id, {
             "type": "player",
             "position": {"x": x, "y": y}
         })
-        # Log to Turn table
+        
         self.update_turn({
             "type": "player",
             "position": {"x": x, "y": y}
         })
 
-
         self.db.commit()
+        print(f"[move_player] Player {player_id} moved to ({x}, {y})")
         return True
-
 
     def place_wall(self, player_id: int, x: int, y: int, orientation: str, is_valid: bool) -> bool:
         print(f"[place_wall] Request from player {player_id} to place at ({x}, {y}) - {orientation}, confirmed: {is_valid}")
@@ -313,3 +309,148 @@ class GameService:
         turns = self.db.query(Turn).filter(Turn.id <= turn_number).order_by(Turn.id).all()
         return [{"turn": t.id, "move": t.move} for t in turns]
 
+
+    def perform_ai_move(self, player_id, difficulty="random"):
+        """Version améliorée avec meilleure gestion des erreurs"""
+        print(f"[perform_ai_move] Starting for player {player_id} at difficulty {difficulty}")
+        
+        try:
+            # Initialisation de l'IA
+            if difficulty == "random":
+                ai = RandomAI(self, player_id)
+            elif difficulty == "basic":
+                ai = BasicAI(self, player_id)
+            elif difficulty == "advanced":
+                ai = AdvancedAI(self, player_id)
+            else:
+                raise ValueError(f"Unknown difficulty: {difficulty}")
+            
+            # Choix du mouvement
+            move = ai.choose_move()
+            if not move:
+                raise ValueError("AI couldn't choose a move")
+                
+            print(f"[perform_ai_move] AI chose move: {move}")
+            
+            # Exécution du mouvement
+            success = self.perform_action(player_id, move)
+            if not success:
+                raise ValueError("Move execution failed")
+                
+            return True
+            
+        except Exception as e:
+            print(f"[perform_ai_move] Error: {str(e)}")
+            return False
+
+
+
+    
+
+    def export_state_for_ai(self):
+        """
+        Exporte l'état complet du jeu sous forme de dict pour l'IA.
+        """
+        state = {
+            "players": {},
+            "walls": []
+        }
+
+        # Récupérer les joueurs
+        for player in self.players:
+            state["players"][player.id] = {
+                "position": player.position,
+                "walls_left": player.walls_left,
+                "direction": player.direction
+            }
+
+        # Récupérer les murs posés
+        for wall in self.board_logic.walls:
+            state["walls"].append({
+                "x": wall.x,
+                "y": wall.y,
+                "orientation": wall.orientation
+            })
+
+        return state
+
+
+    def ia_play(self, game_id: int, difficulty: int):
+        print(f"[ia_play] Starting with difficulty: {difficulty}")
+        
+        try:
+            # Conversion de la difficulté numérique en format texte
+            difficulty_map = {
+                1: "random",
+                2: "basic", 
+                3: "advanced",
+                4: "advanced"
+            }
+            
+            if difficulty not in difficulty_map:
+                raise ValueError(f"Difficulty {difficulty} not supported")
+                
+            ai_difficulty = difficulty_map[difficulty]
+            
+            # Toujours le joueur 2 pour l'IA
+            player = self.get_player(2)
+            if not player:
+                raise ValueError("IA player (ID 2) not found")
+            
+            # Initialisation de l'IA appropriée
+            if ai_difficulty == "random":
+                ai = RandomAI(self, player.id)
+            elif ai_difficulty == "basic":
+                ai = BasicAI(self, player.id)
+            else:
+                ai = AdvancedAI(self, player.id)
+            
+            # Choix du mouvement
+            move = ai.choose_move()
+            if not move:
+                raise ValueError("AI couldn't choose a valid move")
+                
+            print(f"[ia_play] AI chose move: {move}")
+            
+            # Exécution du mouvement
+            if move["type"] == "player":
+                success = self.move_player(
+                    player.id, 
+                    move["position"]["x"], 
+                    move["position"]["y"]
+                )
+            else:
+                success = self.place_wall(
+                    player.id,
+                    move["x"],
+                    move["y"],
+                    move["orientation"],
+                    True
+                )
+                
+            if not success:
+                raise ValueError("Move execution failed")
+            
+            # Construction de la réponse
+            response = {
+                "success": True,
+                "action": move["type"],
+                "difficulty": difficulty,
+                "x": move["position"]["x"] if move["type"] == "player" else move["x"],
+                "y": move["position"]["y"] if move["type"] == "player" else move["y"],
+                "new_position": move.get("position")
+            }
+            
+            if move["type"] == "wall":
+                response["orientation"] = move["orientation"]
+                
+            print(f"[ia_play] Response: {response}")
+            return response
+            
+        except Exception as e:
+            print(f"[ia_play] Error: {str(e)}")
+            return {
+                "success": False,
+                "error": str(e),
+                "action": None
+            }
