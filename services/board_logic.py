@@ -94,71 +94,141 @@ class GameBoard:
                 queue.append((nx, ny))
 
         return False
-    def is_blocked(self, x1, y1, x2, y2):
+    def is_blocked(self, x1: int, y1: int, x2: int, y2: int) -> bool:
+        """
+        Kiểm tra xem có tường chặn giữa hai vị trí không
+        x1, y1: vị trí hiện tại
+        x2, y2: vị trí đích
+        """
         for wall in self.walls:
             wx, wy = wall.x, wall.y
             ori = wall.orientation
 
-            if ori == Orientation.HORIZONTAL:
-                # chắn giữa (x,y) và (x,y+1)
-                if x1 == x2 == wx and {y1, y2} == {wy, wy + 1}:
-                    return True
-            elif ori == Orientation.VERTICAL:
-                # chắn giữa (x,y) và (x+1,y)
-                if y1 == y2 == wy and {x1, x2} == {wx, wx + 1}:
-                    return True
+            # Di chuyển theo chiều dọc (y không đổi)
+            if y1 == y2:
+                min_x = min(x1, x2)
+                if ori == Orientation.HORIZONTAL:
+                    # Tường ngang chặn đường đi
+                    if (wx == min_x and 
+                        (wy == y1 or wy + 1 == y1)):
+                        return True
+
+            # Di chuyển theo chiều ngang (x không đổi) 
+            if x1 == x2:
+                min_y = min(y1, y2)
+                if ori == Orientation.VERTICAL:
+                    # Tường dọc chặn đường đi
+                    if (wy == min_y and 
+                        (wx == x1 or wx + 1 == x1)):
+                        return True
         return False
 
-    def get_walls(self):
-        return [w.to_dict() for w in self.walls]
+    def get_valid_moves(self, player: Player) -> list[dict]:
+        """
+        Lấy tất cả các nước đi hợp lệ cho người chơi
+        """
+        valid_moves = []
+        x, y = player.position["x"], player.position["y"]
+
+        # Kiểm tra 4 hướng
+        directions = [
+            (Direction.UP, -1, 0),
+            (Direction.DOWN, 1, 0), 
+            (Direction.LEFT, 0, -1),
+            (Direction.RIGHT, 0, 1)
+        ]
+
+        for direction, dx, dy in directions:
+            nx, ny = x + dx, y + dy
+
+            # Kiểm tra giới hạn bàn cờ
+            if not (0 <= nx < self.size and 0 <= ny < self.size):
+                continue
+
+            # Kiểm tra tường chặn
+            if self.is_blocked(x, y, nx, ny):
+                continue
+
+            # Kiểm tra va chạm với người chơi khác
+            other_player = None
+            for pid, p in self.players.items():
+                if (p.id != player.id and 
+                    p.position["x"] == nx and 
+                    p.position["y"] == ny):
+                    other_player = p
+                    break
+
+            if other_player:
+                # TH1: Có thể nhảy qua
+                jump_x, jump_y = nx + dx, ny + dy
+                if (0 <= jump_x < self.size and 
+                    0 <= jump_y < self.size and
+                    not self.is_blocked(nx, ny, jump_x, jump_y) and
+                    not any(p.position["x"] == jump_x and 
+                           p.position["y"] == jump_y 
+                           for p in self.players.values())):
+                    valid_moves.append({
+                        "x": jump_x,
+                        "y": jump_y
+                    })
+
+                else:
+                    # TH2: Nhảy sang ngang
+                    is_vertical = dx != 0
+                    if is_vertical:
+                        # Đang di chuyển lên/xuống -> thử sang trái/phải
+                        side_moves = [(0, -1), (0, 1)]
+                    else:
+                        # Đang di chuyển trái/phải -> thử lên/xuống
+                        side_moves = [(-1, 0), (1, 0)]
+
+                    for side_dx, side_dy in side_moves:
+                        side_x = nx + side_dx
+                        side_y = ny + side_dy
+
+                        if (0 <= side_x < self.size and 
+                            0 <= side_y < self.size and
+                            not self.is_blocked(nx, ny, side_x, side_y) and
+                            not any(p.position["x"] == side_x and 
+                                   p.position["y"] == side_y 
+                                   for p in self.players.values())):
+                            valid_moves.append({
+                                "x": side_x,
+                                "y": side_y
+                            })
+
+            else:
+                # Không có người chơi -> di chuyển bình thường
+                valid_moves.append({
+                    "x": nx,
+                    "y": ny
+                })
+
+        return valid_moves
 
     def is_valid_move(self, player: Player, direction: Direction) -> bool:
-        x, y = player.position["x"], player.position["y"]
-        dx, dy = {
-            Direction.UP: (-1, 0),
-            Direction.DOWN: (1, 0),
-            Direction.LEFT: (0, -1),
-            Direction.RIGHT: (0, 1),
-        }[direction]
-
-        nx, ny = x + dx, y + dy
-        if not (0 <= nx < self.size and 0 <= ny < self.size):
+        """
+        Kiểm tra nước đi có hợp lệ không
+        """
+        valid_moves = self.get_valid_moves(player)
+        
+        # Tính vị trí mới theo hướng di chuyển
+        new_pos = self.calculate_new_position(player.position, direction)
+        
+        # Kiểm tra vị trí mới khác vị trí hiện tại
+        if (new_pos["x"] == player.position["x"] and 
+        new_pos["y"] == player.position["y"]):
             return False
-        if self.is_blocked(x, y, nx, ny):
-            return False
-        # Kiểm tra nếu ô tiếp theo có người chơi khác
-        for pid, other in self.players.items():
-            if other.id != player.id and other.position["x"] == nx and other.position["y"] == ny:
-                # Người chơi khác đang ở phía trước
-
-                # Tọa độ sau người chơi kia
-                jump_x, jump_y = nx + dx, ny + dy
-                if (0 <= jump_x < self.size and 0 <= jump_y < self.size and
-                    not self.is_blocked(nx, ny, jump_x, jump_y)):
-                    # Có thể nhảy qua
-                    return True
-                else:
-                    # Không thể nhảy qua, kiểm tra sang trái/phải
-                    if direction in [Direction.UP, Direction.DOWN]:
-                        # thử sang trái và phải
-                        for side_dy in [-1, 1]:
-                            side_y = ny + side_dy
-                            if (0 <= side_y < self.size and
-                                not self.is_blocked(nx, ny, nx, side_y)):
-                                return True
-                    else:
-                        # thử lên hoặc xuống
-                        for side_dx in [-1, 1]:
-                            side_x = nx + side_dx
-                            if (0 <= side_x < self.size and
-                                not self.is_blocked(nx, ny, side_x, ny)):
-                                return True
-                    return False
-
-        # Không có ai phía trước → bình thường
-        return True
+        
+        # Kiểm tra xem vị trí mới có trong danh sách nước đi hợp lệ không
+        return any(move["x"] == new_pos["x"] and 
+                  move["y"] == new_pos["y"] 
+                  for move in valid_moves)
 
     def calculate_new_position(self, position: dict, direction: Direction) -> dict:
+        """
+        Tính toán vị trí mới dựa trên hướng di chuyển
+        """
         dx, dy = {
             Direction.UP: (-1, 0),
             Direction.DOWN: (1, 0),
@@ -170,5 +240,3 @@ class GameBoard:
             "x": position["x"] + dx,
             "y": position["y"] + dy
         }
-
-    print("nothing")

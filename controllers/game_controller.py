@@ -80,3 +80,28 @@ def get_turns(turn_number):
         return jsonify({"error": "Turn number exceeds existing turns"}), 400
     return jsonify(result)
 
+
+@router.route("/ia_play", methods=["POST", "OPTIONS"])
+def ia_play():
+    db = SessionLocal()
+    try:
+        # Gestion des requêtes OPTIONS pour CORS
+        if request.method == "OPTIONS":
+            return jsonify({"success": True}), 200
+            
+        data = request.get_json()
+        print(f"IA play request data: {data}")
+        
+        if not data or "game_id" not in data or "difficulty" not in data:
+            return jsonify({"error": "Missing parameters"}), 400
+            
+        service = GameService(db)
+        result = service.ia_play(data["game_id"], data["difficulty"])
+        
+        return jsonify(result), 200
+        
+    except Exception as e:
+        print(f"Error in ia_play: {str(e)}")
+        return jsonify({"error": str(e)}), 400
+    finally:
+        db.close()

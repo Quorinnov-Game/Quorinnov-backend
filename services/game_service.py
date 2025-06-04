@@ -8,6 +8,7 @@ from models.state import State
 from .board_logic import GameBoard
 from models.turns import Turn
 import copy
+from services.ai_service import RandomAI, BasicAI, AdvancedAI
 
 
 class GameService:
@@ -113,7 +114,8 @@ class GameService:
         # Log to Turn table
         self.update_turn()
 
-
+        player.position = {"x": x, "y": y}
+        self.db.add(player)
         self.db.commit()
         return True
 
@@ -301,9 +303,11 @@ class GameService:
             },
             walls=wall_list
         )
-        
+
         self.db.add(current_turn)
         self.db.commit()
+
+
 
     def get_turns(self, turn_number: int):
         max_turn = self.db.query(Turn).count()
@@ -312,4 +316,93 @@ class GameService:
 
         turns = self.db.query(Turn).filter(Turn.id <= turn_number).order_by(Turn.id).all()
         return [{"turn": t.id, "move": t.move} for t in turns]
+    
 
+    def ia_play(self, game_id: int, difficulty: int):
+        print(f"[ia_play] Starting with difficulty: {difficulty}")
+        
+        try:
+            # Conversion de la difficulté numérique en format texte
+            difficulty_map = {
+                1: "random",
+                2: "basic", 
+                3: "advanced",
+                4: "advanced"
+            }
+            
+            if difficulty not in difficulty_map:
+                raise ValueError(f"Difficulty {difficulty} not supported")
+                
+            ai_difficulty = difficulty_map[difficulty]
+            
+            # Toujours le joueur 2 pour l'IA
+            player = self.get_player(2)
+            if not player:
+                raise ValueError("IA player (ID 2) not found")
+            
+            # Initialisation de l'IA appropriée
+            if ai_difficulty == "random":
+                ai = RandomAI(self, player.id)
+            elif ai_difficulty == "basic":
+                ai = BasicAI(self, player.id)
+            else:
+                ai = AdvancedAI(self, player.id)
+            
+            # Choix du mouvement
+            move = ai.choose_move()
+            if not move:
+                raise ValueError("AI couldn't choose a valid move")
+                
+            print(f"[ia_play] AI chose move: {move}")
+            
+            # Exécution du mouvement
+            if move["type"] == "player":
+                success = self.move_player(
+                    player.id, 
+                    move["position"]["x"], 
+                    move["position"]["y"]
+                )
+            else:
+                success = self.place_wall(
+                    player.id,
+                    move["x"],
+                    move["y"],
+                    move["orientation"],
+                    True
+                )
+                
+            if not success:
+                raise ValueError("Move execution failed")
+            
+            # Construction de la réponse
+            response = {
+                "success": True,
+                "action": move["type"],
+                "difficulty": difficulty,
+                "x": move["position"]["x"] if move["type"] == "player" else move["x"],
+                "y": move["position"]["y"] if move["type"] == "player" else move["y"],
+                "new_position": move.get("position")
+            }
+            
+            if move["type"] == "wall":
+                response["orientation"] = move["orientation"]
+                
+            print(f"[ia_play] Response: {response}")
+            return response
+            
+        except Exception as e:
+            print(f"[ia_play] Error: {str(e)}")
+            return {
+                "success": False,
+                "error": str(e),
+                "action": None
+            }
+            
+    def get_all_players(self):
+        """Lấy tất cả players từ database"""
+        try:
+            return self.db.query(Player).all()
+        except Exception as e:
+            print(f"Error querying players: {str(e)}")
+            return []
+    
