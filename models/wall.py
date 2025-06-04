@@ -15,7 +15,7 @@ class Wall(Base):
 
 
 
-def to_dict(self):
+    def to_dict(self):
         return {
             "player_id": self.player_id,
             "position": {
