@@ -111,10 +111,7 @@ class GameService:
             "position": {"x": x, "y": y}
         })
         # Log to Turn table
-        self.update_turn({
-            "type": "player",
-            "position": {"x": x, "y": y}
-        })
+        self.update_turn()
 
 
         self.db.commit()
@@ -163,12 +160,7 @@ class GameService:
                 "orientation": orientation
             })
 
-            self.update_turn({
-                "type": "wall",
-                "x": x,
-                "y": y,
-                "orientation": orientation
-            })
+            self.update_turn()
 
 
             self.db.commit()
@@ -293,15 +285,23 @@ class GameService:
                 return True
 
         return False
-    def update_turn(self, action: dict):
-        """
-        Save each move as a Turn. Turn 1, 3, 5... = player 1; Turn 2, 4, 6... = player 2.
-        """
+    def update_turn(self):
         turn_count = self.db.query(Turn).count()
+        player1 = self.get_player(1)
+        player2 = self.get_player(2)
+        walls = self.db.query(Wall).all()
+
+        wall_list = [wall.to_dict() for wall in walls]
+
         current_turn = Turn(
             id=turn_count + 1,
-            move=action
+            position={
+                "player1": player1.position,
+                "player2": player2.position
+            },
+            walls=wall_list
         )
+        
         self.db.add(current_turn)
         self.db.commit()
 
