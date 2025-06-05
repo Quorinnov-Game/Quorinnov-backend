@@ -78,7 +78,10 @@ def get_turns(turn_number):
 
     if result is None:
         return jsonify({"error": "Turn number exceeds existing turns"}), 400
-    return jsonify(result)
+    return jsonify({
+        "success": True if result else False,
+        "history": result
+    }), 200
 
 
 @router.route("/ia_play", methods=["POST", "OPTIONS"])

@@ -111,12 +111,13 @@ class GameService:
             "type": "player",
             "position": {"x": x, "y": y}
         })
-        # Log to Turn table
-        self.update_turn()
 
         player.position = {"x": x, "y": y}
         self.db.add(player)
         self.db.commit()
+        
+        # Log to Turn table
+        self.update_turn()
         return True
 
 
@@ -314,8 +315,8 @@ class GameService:
         if turn_number > max_turn:
             return None
 
-        turns = self.db.query(Turn).filter(Turn.id <= turn_number).order_by(Turn.id).all()
-        return [{"turn": t.id, "move": t.move} for t in turns]
+        turn = self.db.query(Turn).filter(Turn.id == turn_number).first()
+        return turn.to_dict() if turn else None
     
 
     def ia_play(self, game_id: int, difficulty: int):
