@@ -35,7 +35,9 @@ class GameBoard:
         self.walls.append(wall)
         return True
 
+    '''
     def _is_valid_wall(self, wall: Wall) -> bool:
+        print("JE SUIS UTILIS2EEEEEEEEE")
         x, y = wall.x, wall.y
         orientation = wall.orientation
 
@@ -65,6 +67,122 @@ class GameBoard:
             return False
 
         return True
+
+    '''
+    '''V2
+    def _is_valid_wall(self, wall: Wall) -> bool:
+        x, y = wall.x, wall.y
+        orientation = wall.orientation.upper()
+
+        print(f"[VALIDATION] Vérification du mur à ({x},{y}) - {orientation}")
+
+        # 1. Vérification des limites du plateau
+        if not (0 <= x <= self.size - 2 and 0 <= y <= self.size - 2):
+            print("[INVALID] Hors des limites du plateau.")
+            return False
+
+        # 2. Vérification des murs déjà présents
+        for w in self.walls:
+            if w.x == x and w.y == y and w.orientation == orientation:
+                print("[INVALID] Mur déjà placé exactement au même endroit.")
+                return False
+
+            # 3. Collision avec un mur adjacent (ex. deux horizontaux côte à côte)
+            if orientation == Orientation.HORIZONTAL and w.orientation == Orientation.HORIZONTAL:
+                if w.x == x and abs(w.y - y) == 1:
+                    print("[INVALID] Collision avec un autre mur horizontal adjacent.")
+                    return False
+            if orientation == Orientation.VERTICAL and w.orientation == Orientation.VERTICAL:
+                if w.y == y and abs(w.x - x) == 1:
+                    print("[INVALID] Collision avec un autre mur vertical adjacent.")
+                    return False
+
+            # 4. Croisement interdit
+            if w.x == x and w.y == y and w.orientation != orientation:
+                print("[INVALID] Croisement de mur interdit.")
+                return False
+
+        # 5. Vérification des chemins accessibles
+        self.walls.append(wall)
+        has_path_p1 = self.has_path(self.players[1])
+        has_path_p2 = self.has_path(self.players[2])
+        self.walls.pop()  # rollback
+
+        if not (has_path_p1 and has_path_p2):
+            print("[INVALID] Le mur bloque tous les chemins.")
+            return False
+
+        print("[VALID] Mur autorisé.")
+        return True
+
+    '''
+
+    def _is_valid_wall(self, wall: Wall) -> bool:
+        x, y = wall.x, wall.y
+        orientation = wall.orientation.upper()
+
+        print(f"[VALIDATION] Vérification du mur à ({x},{y}) - {orientation}")
+
+        # 1. Vérification des limites du plateau
+        if not (0 <= x <= self.size - 2 and 0 <= y <= self.size - 2):
+            print("[INVALID] Hors des limites du plateau.")
+            return False
+
+        # 2. Vérification des murs déjà présents
+        for w in self.walls:
+            if w.x == x and w.y == y and w.orientation.upper() == orientation:
+                print("[INVALID] Mur déjà placé exactement au même endroit.")
+                return False
+
+            # 3. Collision avec un mur adjacent (de même type côte à côte)
+            if orientation == "HORIZONTAL" and w.orientation.upper() == "HORIZONTAL":
+                if w.x == x and abs(w.y - y) == 1:
+                    print("[INVALID] Collision avec un autre mur horizontal adjacent.")
+                    return False
+            if orientation == "VERTICAL" and w.orientation.upper() == "VERTICAL":
+                if w.y == y and abs(w.x - x) == 1:
+                    print("[INVALID] Collision avec un autre mur vertical adjacent.")
+                    return False
+
+            # 4. Croisement interdit
+            if w.x == x and w.y == y and w.orientation.upper() != orientation:
+                print("[INVALID] Croisement de mur interdit.")
+                return False
+
+        # 5. Barrière trop longue (3 cases alignées)
+        if orientation == "HORIZONTAL":
+            neighbors = [(x - 1, y), (x + 1, y)]
+            count = sum(
+                1 for nx, ny in neighbors
+                if any(w.x == nx and w.y == ny and w.orientation.upper() == "HORIZONTAL" for w in self.walls)
+            )
+            if count == 2:
+                print("[INVALID] Mur horizontal formerait une barrière de 3 cases.")
+                return False
+
+        if orientation == "VERTICAL":
+            neighbors = [(x, y - 1), (x, y + 1)]
+            count = sum(
+                1 for nx, ny in neighbors
+                if any(w.x == nx and w.y == ny and w.orientation.upper() == "VERTICAL" for w in self.walls)
+            )
+            if count == 2:
+                print("[INVALID] Mur vertical formerait une barrière de 3 cases.")
+                return False
+
+        # 6. Vérification des chemins accessibles pour tous les joueurs
+        self.walls.append(wall)
+        has_path_p1 = self.has_path(self.players[1])
+        has_path_p2 = self.has_path(self.players[2])
+        self.walls.pop()  # rollback
+
+        if not (has_path_p1 and has_path_p2):
+            print("[INVALID] Le mur bloque tous les chemins.")
+            return False
+
+        print("[VALID] Mur autorisé.")
+        return True
+
 
 
     def has_path(self, player: Player) -> bool:
