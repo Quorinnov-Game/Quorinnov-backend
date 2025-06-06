@@ -16,6 +16,11 @@ class GameService:
         self.db = db
 
     def create_game(self, player1: dict, player2: dict):
+        # Crée une nouvelle partie :
+        # - Supprime toutes les anciennes données (joueurs, murs, plateau, tours)
+        # - Crée un nouvel état du jeu et un nouveau plateau
+        # - Ajoute les deux joueurs avec leurs positions et murs restants
+
         self.db.query(Wall).delete()
         self.db.query(Player).delete()
         self.db.query(Board).delete()
@@ -52,7 +57,7 @@ class GameService:
         self.db.add_all([player1_obj, player2_obj])
         self.db.commit()
 
-        # Refresh the board object để đảm bảo có đầy đủ thông tin
+        # Refresh the board object
         self.db.refresh(board_obj)
 
         return board_obj
@@ -173,6 +178,7 @@ class GameService:
         return True
 
     def is_valid_wall(self, player_id: int, x: int, y: int, orientation: str) -> bool:
+        # Vérifie si le mur est autorisé à cette position selon les règles (ne bloque pas complètement l’adversaire, etc.)
         player = self.get_player(player_id)
         if not player:
             return False
@@ -190,6 +196,7 @@ class GameService:
         return board_logic._is_valid_wall(test_wall)
 
     def reset_game(self):
+        # Réinitialise totalement la partie en supprimant tous les éléments : joueurs, murs, plateau et historique
         self.db.query(Wall).delete()
         self.db.query(Player).delete()
         self.db.query(Board).delete()
@@ -198,6 +205,8 @@ class GameService:
 
 
     def check_winner(self) -> str:
+        # Vérifie si un des joueurs a gagné (atteint la ligne d’arrivée selon sa direction)
+        # Retourne le nom du joueur gagnant ou une chaîne vide sinon
         players = self.db.query(Player).all()
         board = self.db.query(Board).first()
         if not board:
@@ -219,6 +228,7 @@ class GameService:
 
 
     def log_action_to_state(self, player_id: int, action: dict):
+        # Enregistre une action (déplacement ou pose de mur) dans la liste des actions du joueur (dans l’état)
         player = self.get_player(player_id)
         if not player:
             return
@@ -243,6 +253,8 @@ class GameService:
         self.db.commit()
 
     def perform_action(self, player_id: int, action: dict) -> bool:
+        # Exécute une action (soit déplacement, soit mur) en fonction de son type
+        # Valide l’action, met à jour le joueur, et l’enregistre dans l’état
         player = self.get_player(player_id)
         if not player:
             return False
@@ -289,6 +301,7 @@ class GameService:
 
         return False
     def update_turn(self):
+        # Sauvegarde l’état actuel des positions des deux joueurs et de tous les murs dans la table des tours (Turn)
         turn_count = self.db.query(Turn).count()
         player1 = self.get_player(1)
         player2 = self.get_player(2)
@@ -309,15 +322,6 @@ class GameService:
         self.db.commit()
 
 
-
-    def get_turns(self, turn_number: int):
-        max_turn = self.db.query(Turn).count()
-        if turn_number > max_turn:
-            return None
-
-        turn = self.db.query(Turn).filter(Turn.id == turn_number).first()
-        return turn.to_dict() if turn else None
-    
 
     def ia_play(self, game_id: int, difficulty: int):
         print(f"[ia_play] Starting with difficulty: {difficulty}")
