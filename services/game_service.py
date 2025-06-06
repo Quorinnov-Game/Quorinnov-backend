@@ -320,8 +320,14 @@ class GameService:
 
         self.db.add(current_turn)
         self.db.commit()
-
-
+        
+    def get_turns(self, turn_number: int):
+        max_turn = self.db.query(Turn).count()
+        if turn_number > max_turn:
+            return None
+        
+        turn = self.db.query(Turn).filter(Turn.id == turn_number).first()
+        return turn.to_dict() if turn else None
 
     def ia_play(self, game_id: int, difficulty: int):
         print(f"[ia_play] Starting with difficulty: {difficulty}")
